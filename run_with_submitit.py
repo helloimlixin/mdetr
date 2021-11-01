@@ -23,19 +23,19 @@ def parse_args():
     detection_parser = detection.get_args_parser()
     parser = argparse.ArgumentParser("Submitit detection", parents=[detection_parser])
 
-    parser.add_argument("--partition", default=None, type=str, help="Partition where to submit")
-    parser.add_argument("--ngpus", default=8, type=int, help="Number of gpus to request on each node")
-    parser.add_argument("--nodes", default=4, type=int, help="Number of nodes to request")
+    parser.add_argument("--partition", default="gpu", type=str, help="Partition where to submit")
+    parser.add_argument("--ngpus", default=2, type=int, help="Number of gpus to request on each node")
+    parser.add_argument("--nodes", default=2, type=int, help="Number of nodes to request")
     parser.add_argument("--timeout", default=4300, type=int, help="Duration of the job")
     parser.add_argument("--job_dir", default="", type=str, help="Job dir. Leave empty for automatic.")
-    parser.add_argument("--mail", default="", type=str, help="Email this user when the job finishes if specified")
+    parser.add_argument("--mail", default="helloimlixin@gmail.com", type=str, help="Email this user when the job finishes if specified")
     return parser.parse_args()
 
 
 def get_shared_folder(args) -> Path:
     user = os.getenv("USER")
-    if Path("/checkpoint/").is_dir():
-        p = Path(f"/checkpoint/{user}/experiments")
+    if Path("/home/xl598/Desktop/mdetr/checkpoint/").is_dir():
+        p = Path(f"/home/xl598/Desktop/mdetr/checkpoint/{user}/experiments/")
         p.mkdir(exist_ok=True)
         return p
     raise RuntimeError("No shared folder available")
@@ -143,10 +143,10 @@ def main():
         kwargs["slurm_partition"] = partition
 
     executor.update_parameters(
-        mem_gb=62 * num_gpus_per_node,
+        mem_gb=1 * num_gpus_per_node,
         gpus_per_node=num_gpus_per_node,
         tasks_per_node=num_gpus_per_node,  # one task per GPU
-        cpus_per_task=10,
+        cpus_per_task=4,
         nodes=nodes,
         timeout_min=timeout_min,  # max is 60 * 72
         # Below are cluster dependent parameters
@@ -158,8 +158,9 @@ def main():
     if args.mail:
         executor.update_parameters(additional_parameters={"mail-user": args.mail, "mail-type": "END"})
 
-    args.dist_url = get_init_file(args).as_uri()
+    args.dist_url = Path(get_init_file(args)).as_uri()
     args.output_dir = args.job_dir
+    print(args.output_dir)
 
     trainer = Trainer(args)
     job = executor.submit(trainer)
